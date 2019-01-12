@@ -6,10 +6,15 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
 	"reflect"
 	"strconv"
+
+	"github.com/json-iterator/go"
+)
+
+var (
+	jjson = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 const (
@@ -322,7 +327,6 @@ func (client *rpcClient) Call(method string, params ...interface{}) (*RPCRespons
 		Method:  method,
 		Params:  Params(params...),
 		JSONRPC: jsonrpcVersion,
-		ID:      rand.Int(),
 	}
 
 	return client.doCall(request)
@@ -369,7 +373,7 @@ func (client *rpcClient) CallBatchRaw(requests RPCRequests) (RPCResponses, error
 
 func (client *rpcClient) newRequest(req interface{}) (*http.Request, error) {
 
-	body, err := json.Marshal(req)
+	body, err := jjson.Marshal(req)
 	if err != nil {
 		return nil, err
 	}
@@ -403,7 +407,7 @@ func (client *rpcClient) doCall(RPCRequest *RPCRequest) (*RPCResponse, error) {
 	defer httpResponse.Body.Close()
 
 	var rpcResponse *RPCResponse
-	decoder := json.NewDecoder(httpResponse.Body)
+	decoder := jjson.NewDecoder(httpResponse.Body)
 	decoder.DisallowUnknownFields()
 	decoder.UseNumber()
 	err = decoder.Decode(&rpcResponse)
@@ -447,7 +451,7 @@ func (client *rpcClient) doBatchCall(rpcRequest []*RPCRequest) ([]*RPCResponse, 
 	defer httpResponse.Body.Close()
 
 	var rpcResponse RPCResponses
-	decoder := json.NewDecoder(httpResponse.Body)
+	decoder := jjson.NewDecoder(httpResponse.Body)
 	decoder.DisallowUnknownFields()
 	decoder.UseNumber()
 	err = decoder.Decode(&rpcResponse)
@@ -608,7 +612,7 @@ func (RPCResponse *RPCResponse) GetString() (string, error) {
 //
 // The function works as you would expect it from json.Unmarshal()
 func (RPCResponse *RPCResponse) GetObject(toType interface{}) error {
-	js, err := json.Marshal(RPCResponse.Result)
+	js, err := jjson.Marshal(RPCResponse.Result)
 	if err != nil {
 		return err
 	}
